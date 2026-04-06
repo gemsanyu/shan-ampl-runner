@@ -33,7 +33,7 @@ set Dσ :=Nσ;
 
 
 # param
-param CV := 200;    		# ECV fixed cost(Topic Given)
+param CV := 200;        # ECV fixed cost(Topic Given)
 param C := 1000;   		# ECV max load
 param Q := 194.58; 		# ECV/BSV battery level
 param h := 1;     		# ECV consumption

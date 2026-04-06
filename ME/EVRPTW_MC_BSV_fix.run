@@ -11,7 +11,7 @@ let instance_name := "C101-5.txt";
 data ("AMPL_file/ME/data_5/"&instance_name);
 
 
-let Cb := 1.5 * ((Q / g) * Cr);
+let Cb := 1.5 * (Q * Cr);
 
 
 #CHANGE THE SOLVER (optional)

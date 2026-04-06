@@ -39,20 +39,20 @@ param Ct; 				 # travel cost
 
 #decision variable
 var x{i in Vall, j in Vall: i != j} binary;         # Vehicle from i to j
-var xplun{i in Vplun, j in Vplun: i != j} binary;  				# BSV from i to j
-var b{i in F} binary;           						# ECV choose to battery swap station it will be 1
-var c{i in F} binary;           						# ECV choose to recharging station it will be 1
-var y{i in Vall} >=0;               					# remaining battery level of ECV at node i
-var yplun{Vplun} >=0;     	    								# remaining battery level of BSV at node i
-var Y{i in F} >=0;                   				# remaining battery level of ECV from it depart at CS or BSS
-var R{i in F}>=0;               # The recharging amount of ECV charged at CS node i
+var xplun{i in Vplun, j in Vplun: i != j} binary;  	# BSV from i to j
+var b{i in F} binary;           # ECV choose to battery swap station it will be 1
+var c{i in F} binary;           # ECV choose to recharging station it will be 1
+var y{i in Vall} >=0;           # remaining battery level of ECV upon arrival at node i (pre charging & pre swapping if at CS)
+var yplun{Vplun} >=0;     	    # remaining battery level of BSV at node i
+var Y{i in F} >=0;              # remaining battery level of ECV right before it departs from CS or BSS
+var R{i in F}>=0;               #   The recharging amount of ECV charged at CS node i
 var u{i in Vall}>=0;            # remaining load on ECV at node i
-var w{Vall} integer >= 0;  				   # number of remaining full batteries on BSV at node i
+var w{V} integer >= 0;  		# number of remaining full batteries on BSV at node i
 var A{i in Vall}>=0;            # EV arrival time at node i 
-var Aplun{Vall}>=0;        				   # arrival time of BSV at node i
+var Aplun{Vall}>=0;        		# arrival time of BSV at node i
 var a{i in Vall}>=0;            # customer service start time by EV at node i
-var theta{Vplun}>=0;      			       # battery swap service start time by BSV at node i
-var delta{Vall} binary;     			   # 1 if battery swapping at node i starts after [Ai,ei-zeta]
+var theta{Vplun}>=0;      		# battery swap service start time by BSV at node i
+var delta{Vall} binary;     	# 1 if battery swapping at node i starts after [Ai,ei-zeta]
 
 
 #the obj fun
@@ -65,36 +65,51 @@ minimize TotalCost:
     Cb * (sum{i in F, j in Vplunend: i != j} b[i]* x[i,j] +sum{i in Vplun, j in V: i != j}xplun[i,j]);		# BSS/BSV battery swap cost
 
 #subject to
-subject to limit2{i in V}:sum{j in Vplunend:i<>j}x[i,j]=1;
-subject to limit3{i in F}:sum{j in Vplunend:i<>j}x[i,j]<=1;
-subject to limit4{i in Vplun}:sum{j in Vplun0:i<>j}x[j,i] - sum{j in Vplunend:i<>j}x[i,j] = 0;
-subject to limit5{i in V}:sum{j in Vplun:i<>j}xplun[j,i] - sum{j in Vplun:i<>j}xplun[i,j] = 0;
+subject to limit2{i in V}:sum{j in Vplunend:i<>j}x[i,j]=1; #must leave from customer
+subject to limit3{i in F}:sum{j in Vplunend:i<>j}x[i,j]<=1; #depart from a CS at most once (so one usage only)
+subject to limit4{i in Vplun}:sum{j in Vplun0:i<>j}x[j,i] - sum{j in Vplunend:i<>j}x[i,j] = 0; #EV flow equality for cust and CS
+subject to limit5{i in V}:sum{j in Vplun:i<>j}xplun[j,i] - sum{j in Vplun:i<>j}xplun[i,j] = 0; #BSV flow equality
+
+# these three are EV's MTZ constraints
 
 #subject to limit6{i in Vplun0, j in Vplunend:i<>j}:0 <= u[j] <= u[i] - m[i]*x[i,j] + C(1 - x[i,j]);
-subject to limit6a{i in Vplun0, j in Vplunend:i<>j}:0 <= u[j];
+subject to limit6a{i in Vplun0, j in Vplunend:i<>j}:0 <= u[j]; #MTZ, but this constraint is redundant to dec var definitions.
 subject to limit6b{i in Vplun0, j in Vplunend:i<>j}: 
     u[j] <= u[i] - m[i]*x[i,j] + C*(1 - x[i,j]);
-    
 subject to limit7{z in D0}:0 <= u[z] <= C;
 
+
+# these two are BSV's MTZ constraints
+# need to confirm with SHAN's about the logic
 #subject to limit8{i in Vplun, j in Vplun:i<>j}: 0 <= w[j] <= w[i] - xplun[i,j] + Qplun(1 - xplun[i,j]);
 subject to limit8a{i in Vplun, j in Vplun:i<>j}: 0 <= w[j];
-subject to limit8b{i in Vplun, j in Vplun:i<>j}: 
+subject to limit8b{i in V, j in V:i<>j}: 
     w[j] <= w[i] - xplun[i,j] + Qplun*(1 - xplun[i,j]);
-    
-subject to limit9{z in D0}:0 <= w[z] <= Qplun;
-subject to limit10{i in F}:Y[i] = c[i] * (y[i] + R[i]) + b[i]*Q;
+# if j is first in a bsv route, w[j] == Qplun is equivalent with w>=Qplun and w<=Qplun
+subject to limit8c{j in V}: 
+    w[j] <= Qplun*(sum{i in F}xplun[i,j]) + Qplun*(1 - sum{i in F}xplun[i,j]);
+subject to limit8d{j in V}: 
+    w[j] >= Qplun*(sum{i in F}xplun[i,j]) - Qplun*(1 - sum{i in F}xplun[i,j]);
+# this means use 1 battery everytime leaving customer: limit8b
+# and for every route: at the first customer, the number of battery carried by bsv
+# is equal to Qplun : limit8c and limit8d
+
+
+# subject to limit9{z in F}:0 <= w[z] <= Qplun;
+
+# battery level before departing from CS or BSS
+subject to limit10{i in F}:Y[i] = c[i] * (y[i] + R[i]) + b[i]*Q; #charging or battery swapping
 subject to limit11{i in F}:0 <= Y[i] <= Q;
-subject to limit12{j in F}:b[j] + c[j] <= 1;
+subject to limit12{j in F}:b[j] + c[j] <= 1; # choose at most one charging operation
 
 #subject13要加D0限制倉庫出去到其他地方充電的電量限制
 #subject to limit13{i in V0, j in Vplunend:i != j}:0 <= y[j] <= (y[i] - h*d[i,j]*x[i,j] )*(1-sum{rho in Vplun: j in V  && rho != j}xplun[rho,j]) + Q*sum{rho in Vplun: j in V}xplun[rho,j];
-subject to limit13a{i in V0, j in Vplunend:i != j}:0 <= y[j] ;
+subject to limit13a{i in V0, j in Vplunend:i != j}:0 <= y[j] ; # this is redundant (?)
 subject to limit13b{i in V0, j in Vplunend: i<>j}:
-	y[j] <= (y[i] - h*d[i,j]*x[i,j])*(1-sum{rho in Vplun: j in V && rho != j}xplun[rho,j]) +
-	Q*sum{rho in Vplun: j in V && rho != j}xplun[rho,j]+Q*(1-x[i,j]);
+	y[j] <= (y[i] - h*d[i,j]*x[i,j])*(1-sum{rho in Vplun: j in V && rho != j}xplun[rho,j]) + #if no bsv swap at j
+	Q*sum{rho in Vplun: j in V && rho != j}xplun[rho,j]+Q*(1-x[i,j]); # if bsv visits to swap at j
 
-subject to limit14{j in V}:sum{rho in Vplun: j in V && rho != j}xplun[rho,j] <= 1;
+subject to limit14{j in V}:sum{rho in Vplun: j in V && rho != j} xplun[rho,j] <= 1;
 subject to limit15{i in Vall}:0 <= y[i] <= Q;
 
 #subject to limit16{i in F, j in Vplunend:i != j}:0 <= y[j] <= Y[i] - h*d[i,j]*x[i,j] + Q*sum {rho in  Vplun: j in V && rho != j} xplun[rho,j] + Q*(1 - x[i,j]);
