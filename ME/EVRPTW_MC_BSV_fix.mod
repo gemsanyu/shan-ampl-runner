@@ -1,17 +1,19 @@
 #include EVRPTW_MC_BSV_fix.run
 #set
 
+set F_UNIQ; #Unique CS only
+set F_NODES {F_UNIQ};
 set F;  #CS(charging station) include dummy CS
 set D0; #start_depot
-set Dσ; #end_depot
-set D :=D0 union Dσ;
+set Dsig; #end_depot
+set D :=D0 union Dsig;
 set V; #customers
 set Vplun :=V union F; #include customers and CS 
 set Vall :=D union V union F; #set of network nodes
 set Vplun0 :=V union D0 union F; #include customers and start deopt and CS
-set Vplunend :=V union Dσ union F; #include customers and end deopt and CS
+set Vplunend :=V union Dsig union F; #include customers and end deopt and CS
 set V0 :=D0 union V; #Set of the depot node {0} and the customer nodes C
-set Vσ :=Dσ union V; #Set of the customer nodes C and the final depot {σ}
+set Vsig :=Dsig union V; #Set of the customer nodes C and the final depot {sig}
 
 
 #parameter
@@ -82,7 +84,7 @@ subject to limit7{z in D0}:0 <= u[z] <= C;
 # these two are BSV's MTZ constraints
 # need to confirm with SHAN's about the logic
 #subject to limit8{i in Vplun, j in Vplun:i<>j}: 0 <= w[j] <= w[i] - xplun[i,j] + Qplun(1 - xplun[i,j]);
-subject to limit8a{i in Vplun, j in Vplun:i<>j}: 0 <= w[j];
+# subject to limit8a{i in Vplun, j in Vplun:i<>j}: 0 <= w[j];
 subject to limit8b{i in V, j in V:i<>j}: 
     w[j] <= w[i] - xplun[i,j] + Qplun*(1 - xplun[i,j]);
 # if j is first in a bsv route, w[j] == Qplun is equivalent with w>=Qplun and w<=Qplun

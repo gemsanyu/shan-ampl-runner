@@ -1,0 +1,60 @@
+#include EVRPTW_MC_BSV_fix.run
+#RESET THE AMPL ENVIROMENT
+reset;
+#LOAD THE MODEL
+model EVRPTW_MC_BSV_fix.mod;
+
+#data EVRPTW_MC_BSV_fix.dat;
+param instance_name symbolic;
+#LOAD THE DATA
+let instance_name := "data_5/C101-5.txt";
+data ("new_instances/"&instance_name);
+
+let Cb := 1.5 * (Q * Cr);
+
+
+#CHANGE THE SOLVER (optional)
+option solver Gurobi;
+option gurobi_options "timelimit=18000 bestbound=1 ";
+
+
+
+
+#SOLVE
+solve;
+
+# # 設定輸出檔案名稱
+# param output_file symbolic default "C101-5-fix2";
+
+# # 設定完整的 Windows 路徑
+# param output_dir symbolic default "C:\\Users\\USER\\Desktop\\AMPL_mefix\\";
+# # 設定完整的輸出檔案路徑
+# param output_path symbolic default output_dir & output_file & ".txt";
+
+# # 清空輸出檔案
+# printf "" > (output_path);
+
+# #SHOW RESULTS
+# param mip_gap;
+# let mip_gap := abs(TotalCost - TotalCost.bestbound) / max(1, abs(TotalCost));
+# print "MIP Gap (%): ", 100 * mip_gap >> (output_path);
+# display _solve_elapsed_time >> (output_path);
+# display TotalCost >> (output_path); 												# display total cost
+# display x >> (output_path); 														# display EV route
+# display xplun >> (output_path); 													# display BSV route
+# display sum{i in D0, j in Vplunend} x[i,j] >> (output_path); 						# display number of EV
+# display sum{i in F, j in V:i<>j} xplun[i,j] >> (output_path); 						# display number of BSV
+# display sum{i in Vall, j in Vall: i != j} t[i,j] * x[i,j] >> (output_path); 		# display travel cost of EV
+# display sum{i in Vplun, j in Vplun: i != j} t[i,j] * xplun[i,j] >> (output_path); 	# display travel cost of BSV
+# display sum{i in F} c[i] * R[i] >> (output_path);									# display recharging cost
+# display (sum{i in F, j in Vplunend: i != j} b[i]* x[i,j] +sum{i in Vplun, j in V: i != j}xplun[i,j]) >> (output_path); 	# BSS/BSV battery swap cost
+# display y >> (output_path); 				# remaining battery level of ECV at node i
+# display yplun >> (output_path); 			# remaining battery level of BSV at node i
+# display A >> (output_path); 				# EV arrival time at node i
+# display Aplun >> (output_path); 			# BSV arrival time at node i
+# display u >> (output_path); 				# remaining load on ECV at node i
+# display w >> (output_path);
+# display b >> (output_path);
+# display c >> (output_path);
+# display R >> (output_path);
+# display Y >> (output_path);

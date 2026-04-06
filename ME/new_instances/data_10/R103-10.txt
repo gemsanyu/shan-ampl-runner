@@ -1,7 +1,7 @@
-F_UNIQ := 11 16 21;
-F_NODES[11] := 11 12 13 14 15;
-F_NODES[16] := 16 17 18 19 20;
-F_NODES[21] := 21 22 23 24 25;
+set F_UNIQ := 11 16 21;
+set F_NODES[11] := 11 12 13 14 15;
+set F_NODES[16] := 16 17 18 19 20;
+set F_NODES[21] := 21 22 23 24 25;
 #definition
 
 # set
