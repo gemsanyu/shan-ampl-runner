@@ -55,7 +55,7 @@ var ev_arr{i in VF} >=0; #ev arrival time
 var ev_start{i in V} >=e[i], <=l[i]; #ev start service time at customer
 var ev_dep{i in VF} >=0; #ev departure time
 var ev_charge_amount{i in F}>=0, <=Q;
-var ev_load{i in F}>=0, <=C-1; # ev load upon departure (so in the last customer at least have 0, cannot be negative)
+var ev_load{i in VF}>=0, <=C; # ev load upon departure (so in the last customer at least have 0, cannot be negative)
 
 # BSV variabels
 var xplun{BSV_ARCS} binary; #bsv arc choices
@@ -163,10 +163,85 @@ subject to ev_flow_equality {j in VF}:
 ;
 
 subject to cs_visit_at_most_once {j in F}:
-    sum{i in Vall: (i,j) in EV_ARCS} == is_cs_visited[j]
+    sum{i in Vall: (i,j) in EV_ARCS} x[i,j] == is_cs_visited[j]
 ;
 
-subject to cs_options {j in F}:
-    choose_battery[j] + choose_charging[j] == is_cs_visited[j]
+subject to cs_options {i in F}:
+    choose_battery[i] + choose_charging[i] == is_cs_visited[i]
 ;
+
+subject to ev_charge_amount_constraint {i in F}:
+    ev_charge_amount[i] <= Q*choose_charging[i]
+;
+
+subject to ev_load_mtz_cust {i in VF, j in VF: (i,j) in EV_ARCS}:
+    ev_load[j] <= ev_load[i] - m[j] + (C+m[j])*(1-x[i,j])
+;
+
+subject to ev_load_first_node {j in VF: (N0, j) in EV_ARCS}:
+    ev_load[j] >= (C-m[j])*x[N0,j]
+;
+
+
+# we split arrival, start and departure time constraints for customer and stations
+# and stations dont have start time, charging/swapping is done exactly on arrival
+subject to ev_start_time1 {i in V}:
+    ev_start[i] >= ev_arr[i]
+;
+
+subject to ev_start_time2 {i in V}: # this one actually already in variable domain
+    ev_start[i] >= e[i]
+;
+
+subject to ev_departure_time_at_cust {i in V}:
+    ev_dep[i] == ev_start[i] + s[i] + lamda*bsv_start_post_service[i]
+;
+
+subject to ev_departure_time_at_cs {i in F}:
+    ev_dep[i] == ev_arr[i] + g*ev_charge_amount[i] + lamda*choose_battery[i]
+;
+
+subject to ev_time_flow {i in VF, j in VF: (i,j) in EV_ARCS}:
+    ev_arr[j] >= ev_dep[i] + t[i,j] - (max_time+t[i,j])*(1-x[i,j])
+;
+
+subject to ev_arr_time_first_node {j in VF: (N0,j) in EV_ARCS}:
+    ev_arr[j] >= t[N0, j]*x[N0, j]
+;
+
+subject to ev_dep_time_last_node {i in VF: (i,Nsig) in EV_ARCS}:
+    ev_dep[i] <= x[i, Nsig]*(l[Nsig]-t[i, Nsig]) + max_time*(1 - x[i, Nsig])
+;
+
+# energy flow
+subject to ev_energy_flow{i in VF, j in VF: (i,j) in EV_ARCS}:
+    en_on_arr[j] <= en_on_dep[i] - h*d[i,j] + (Q+h*d[i,j])*(1-x[i,j])
+;
+
+subject to ev_energy_flow_first_node{j in VF: (N0,j) in EV_ARCS}:
+    en_on_arr[j] <= Q - h*d[N0,j]*x[N0, j]
+;
+
+subject to ev_energy_flow_last_node{i in VF: (i, Nsig) in EV_ARCS}:
+    en_on_dep[i] >= h*d[i,Nsig]*x[i,Nsig]
+;
+
+subject to ev_energy_cust_link1 {i in V}:
+    en_on_dep[i] <= en_on_arr[i] + Q * is_bsv_destination[i];
+
+subject to ev_energy_cust_link2 {i in V}:
+    en_on_dep[i] >= en_on_arr[i] - Q * is_bsv_destination[i];
+
+subject to ev_energy_cust_swap {i in V}:
+    en_on_dep[i] >= Q * is_bsv_destination[i];
+
+subject to ev_energy_cs_link1 {i in F}:
+    en_on_dep[i] <= en_on_arr[i] + ev_charge_amount[i] + Q * choose_battery[i];
+
+subject to ev_energy_cs_link2 {i in F}:
+    en_on_dep[i] >= en_on_arr[i] + ev_charge_amount[i] - Q * choose_battery[i];
+
+subject to ev_energy_cs_swap {i in F}:
+    en_on_dep[i] >= Q * choose_battery[i];
+
 

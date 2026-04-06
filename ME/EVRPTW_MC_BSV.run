@@ -7,7 +7,7 @@ model EVRPTW_MC_BSV.mod;
 #data EVRPTW_MC_BSV_fix.dat;
 param instance_name symbolic;
 #LOAD THE DATA
-let instance_name := "data_5/C101-5.txt";
+let instance_name := "data_10/R201-10.txt";
 data ("new_instances/"&instance_name);
 
 let Cb := 1.5 * (Q * Cr);
@@ -15,7 +15,7 @@ let Cb := 1.5 * (Q * Cr);
 
 #CHANGE THE SOLVER (optional)
 option solver Gurobi;
-option gurobi_options "timelimit=18000 bestbound=1 ";
+option gurobi_options "timelimit=18000 bestbound=1 outlev=1";
 
 
 
