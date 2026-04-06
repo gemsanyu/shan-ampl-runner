@@ -2,7 +2,7 @@
 #RESET THE AMPL ENVIROMENT
 reset;
 #LOAD THE MODEL
-model EVRPTW_MC_BSV_fix.mod;
+model EVRPTW_MC_BSV.mod;
 
 #data EVRPTW_MC_BSV_fix.dat;
 param instance_name symbolic;

@@ -17,6 +17,8 @@ set Vsig :=Dsig union V; #Set of the customer nodes C and the final depot {sig}
 
 
 #parameter
+param N0 := min {i in D0} i;
+param Nsig := min {i in Dsig} i;
 param n in V;            #number of customers
 param t{i in Vall, j in Vall}>=0; # travel time between node i and j
 param d{i in Vall, j in Vall}>=0; # distance between node i and j
