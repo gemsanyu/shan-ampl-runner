@@ -245,3 +245,10 @@ subject to ev_energy_cs_swap {i in F}:
     en_on_dep[i] >= Q * choose_battery[i];
 
 
+# Symmetry Breaking Constraints for duplicate charging stations
+subject to sbc_duplicate_cs_lex 
+    {f in F_UNIQ, i in VF, j in F_NODES[f]: 
+        j < max {j_ in F_NODES[f]} j_ and (i, j+1) in EV_ARCS}:
+    
+    sum {k in VF: k < i and (k,j) in EV_ARCS} x[k,j] >= x[i, j+1]
+;
